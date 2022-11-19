@@ -18,7 +18,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.   
 ***********************************************************************************/
-#define IOTAWATT_VERSION "02_08_00"
+#define IOTAWATT_VERSION "FUL_02_08"
 #define DEVICE_NAME "IotaWatt"
 
 #define PRINT(txt,val) Serial.print(txt); Serial.print(val);      // Quick debug aids
@@ -195,7 +195,8 @@ struct EEprom {
 #define T_influx1 32       // influxDB_v1_uploader
 #define T_integrator 33    // Integrator class  
 #define T_Script 34
-#define T_Scriptset 35                        
+#define T_Scriptset 35   
+#define T_thingsboard 90                     
 
       // LED codes
 
@@ -301,6 +302,7 @@ extern uploader *influxDB_v2;
 extern uploader *Emoncms;
 extern int32_t uploaderBufferLimit;       // Dynamic limit to try to control overload during recovery
 extern int32_t uploaderBufferTotal;       // Total aggregate target of uploader buffers       
+extern uploader *thingsboard;  //DAC 23.10.22
 
       // ******************* WiFi connection  *************************************
 
@@ -369,6 +371,7 @@ uint32_t  historyLog(struct serviceBlock*);
 uint32_t  statService(struct serviceBlock*);
 uint32_t  EmonService(struct serviceBlock*);
 uint32_t  influxService(struct serviceBlock*);
+uint32_t  thingsboardService(struct serviceBlock*); //DAC
 uint32_t  timeSync(struct serviceBlock*);
 uint32_t  updater(struct serviceBlock*);
 uint32_t  WiFiService(struct serviceBlock*);

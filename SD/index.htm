@@ -364,6 +364,14 @@
                             <span id="PVoutputmsg"></span>
 
                         </div>
+
+                        <div id="statusThingsboardDiv" class="statusDiv" style="display: none;">
+                            <button id="ThingsboardButton" style="configButton" value="thingsboard" onclick="serverToggle(this)"></button>
+                            <span>Thingsboard:</span>
+                            <span id="Thingsboardtext"></span>
+                            <span id="Thingsboardmsg"></span>
+
+                        </div>
                     </div>
                 </div>
 
@@ -517,7 +525,7 @@
         </div>
         <!-- mainBody -->
         <div id="copyright">
-            <p style="text-align:center; padding:0px; margin:0px"><small>&#xA9 2021 IoTaWatt, Inc.</small></p>
+            <p style="text-align:center; padding:0px; margin:0px"><small>&#xA9 2022 FULMEN SA de CV</small></p>
         </div>
     </div>
     <!-- outerContainer -->
@@ -2095,7 +2103,7 @@
          * ******************************************************************************************/
 
         function buildWebServer() {
-            var servers = ["Emoncms", "InfluxDB_v1", "influxDB_v2", "PVoutput"];
+            var servers = ["Emoncms", "InfluxDB_v1", "influxDB_v2", "PVoutput", "thingsboard"]; //DAC
             EbyId("serverHead").innerHTML = "Setup Server Uploaders";
             EbyId("divInfluxTagSet").style.display = "none";
             EbyId("divServerOutputs").style.display = "none";
@@ -2125,6 +2133,10 @@
                 if (servers[i].toLowerCase() == "pvoutput") {
                     option.text += (config.pvoutput !== undefined) ? " (edit)" : " (add)";
                 }
+                //DAC
+                if (servers[i].toLowerCase() == "thingsboard") {
+                    option.text += (config.thingsboard !== undefined) ? " (edit)" : " (add)";
+                }
                 serverSelect.add(option);
             }
             EbyId("serverDelete").style.display = "none";
@@ -2144,6 +2156,9 @@
             } else if (obj.value.toLowerCase() == "pvoutput") {
                 serverConfig = undefined;
                 editPVoutput();
+            } else if (obj.value.toLowerCase() == "thingsboard") {
+                serverConfig = undefined;
+                editThingsboard();
             }
         }
 
@@ -2804,6 +2819,113 @@
         }
 
         /***********************************************************************************************
+         *                                Configure Thingsboard DAC 23.10.22
+         * ********************************************************************************************/
+         function editThingsboard() {
+            editing = true;
+
+            var serverTable = EbyId("serverTable");
+            serverTable.innerHTML = "";
+
+            if (config.thingsboard === undefined) {
+                config.thingsboard = {
+                    type: "thingsboard",
+                    revision: 0,
+                    accessToken: "",
+                    url: "",
+                    postInterval: 5,
+                    outputs: []
+                };
+                EbyId("serverDelete").style.display = "none";
+                EbyId("serverHead").innerHTML = "Add Thingsboard Service";
+            } else {
+                config.thingsboard.revision++;
+                EbyId("serverHead").innerHTML = "Edit Thingsboard Service";
+                EbyId("serverDelete").style.display = "inline";
+                EbyId("serverDelete").setAttribute("onclick", "deleteThingsboard();");
+            }
+
+            var urlInput = addTableRow(serverTable, "Server URL:", "url", "input", 60);
+            urlInput.value = config.thingsboard.url
+            urlInput.setAttribute("oninput", "config.thingsboard.url = this.value; checkThingsboard();");
+            urlInput.type = "url";
+
+            var keyInput = addTableRow(serverTable, "Access Token:", "accessToken", "input", 20);
+            keyInput.value = config.thingsboard.accessToken;
+            keyInput.setAttribute("oninput", "config.thingsboard.accessToken = this.value; checkThingsboard();");
+            keyInput.setAttribute("size", "20");
+            keyInput.setAttribute("type", "password");
+            keyInput.pattern = "[0-9a-zA-Z]{20}";
+            keyInput.title = "read/write key - 20  digits";
+
+            var postInput = addTableRow(serverTable, "post interval(sec): ", "postInterval", "input", 3);
+            postInput.value = Number(config.thingsboard.postInterval);
+            postInput.setAttribute("onchange", "config.thingsboard.postInterval = Number(this.value); checkThingsboard();");
+            postInput.setAttribute("style", "width: 40px;");
+            postInput.type = "number";
+            postInput.setAttribute("min", "5");
+            postInput.setAttribute("max", "3600");
+            postInput.setAttribute("step", "5");
+        
+            var begdateInput = addTableRow(serverTable, "upload history from:", "serverBegd", "input", 16);
+            begdateInput.setAttribute("oninput",
+                "config.thingsboard.begdate = (this.value == '') ? undefined : new Date(this.value).getTime()/1000; checkThingsboard();");
+            begdateInput.value = toInputDate(config.thingsboard.begdate);
+            begdateInput.type = "date";
+
+            EbyId("divServerOutputs").style.display = "inline";
+            EbyId("serverOutputsHeader").innerHTML = "Telemetry Outputs";
+
+            var scriptEdit = {
+              table : EbyId("serverOutputs"),
+              set : config.thingsboard.outputs,
+              units : ["Watts", "Volts", "Amps", "Hz", "PF", "VA", "Wh", "kWh", "VAR", "VARh"],
+              namePrompt : "Name must exist on thingsboard",
+              namePattern : "^[0-9a-zA-Z_$-/\.\+]+$",
+              title : "Thingsboard Telemetry"
+            };
+
+            scriptEdit.save = function() {
+                config.thingsboard.outputs = scriptEdit.set;
+            };
+            
+            scriptEdit.return = function() {
+                scriptEdit.table.innerHTML = "";
+                editScript(scriptEdit);
+                checkThingsboard();
+            };
+            
+            editScript(scriptEdit);
+            checkThingsboard();
+        }
+
+        function checkThingsboard() {
+            var complete = true;
+            if (config.thingsboard.outputs.length == 0) complete = false;
+            if (!validateRegex("url", pattern_URL, "Please enter a valid URL.")) complete = false;
+            if (!validateInput("postInterval")) complete = false;
+            if (!validateInput("accessToken")) complete = false;
+            if (!validateInput("serverBegd", false)) complete = false;
+            EbyId("serverSave").style.display = complete ? "inline" : "none";
+        }
+
+        function deleteThingsboard() {
+            config.thingsboard = undefined;
+            serverSave();
+        }
+
+        function thingsboardToggle() {
+            if (config.thingsboard.stop === undefined || config.thingsboard.stop == false) {
+                config.thingsboard.stop = true;
+            } else {
+                config.thingsboard.stop = undefined;
+            }
+            config.thingsboard.revision++;
+            uploadConfig();
+        }
+        //DAC END
+
+        /***********************************************************************************************
          *                        Setup and run status display
          * *******************************************************************************************/
         function statusBegin() {
@@ -2824,7 +2946,7 @@
                     statusDisplay(xmlHttp.responseText);
                 }
             }
-            xmlHttp.open("GET", "/status?state&inputs&outputs&stats&wifi&datalogs&influx1&influx2&emoncms&pvoutput", true);
+            xmlHttp.open("GET", "/status?state&inputs&outputs&stats&wifi&datalogs&influx1&influx2&emoncms&pvoutput&thingsboard", true);
             xmlHttp.send(null);
         }
 
@@ -2966,7 +3088,29 @@
             } else {
                 hide("statusPVoutDiv");
             }
-
+            //DAC INI 23.10.22
+            var thingsboardDiv = EbyId("statusThingsboardDiv");
+            if (status.thingsboard !== undefined && status.thingsboard.state != "not running") {
+                show("statusThingsboardDiv", "block");
+                show("tabUploaders");
+                var button = EbyId("ThingsboardButton");
+                button.disabled = false;
+                if (status.thingsboard.status == "running") {
+                    button.innerHTML = "Stop";
+                    EbyId("Thingsboardtext").innerHTML = "Running"
+                } else {
+                    button.innerHTML = "Start";
+                    EbyId("Thingsboardtext").innerHTML = "Stopped"
+                }
+                EbyId("Thingsboardtext").innerHTML += ", Last update " + formatDateTime(status.thingsboard.lastpost);
+                EbyId("Thingsboardmsg").innerHTML = "";
+                if (status.thingsboard.message) {
+                    EbyId("Thingsboardmsg").innerHTML = "<br>" + status.thingsboard.message;
+                }
+            } else {
+                hide("statusThingsboardDiv");
+            }
+            //DAC FIN
 
             statusTable = EbyId("inputStatusTable");
             statusTable.innerHTML = "";

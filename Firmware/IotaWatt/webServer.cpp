@@ -635,6 +635,18 @@ void handleStatus(){
       root["pvoutput"] = status;
     }
 
+    //DAC 23.10.22
+    if(server.hasArg(F("thingsboard"))){
+      trace(T_WEB,24);
+      JsonObject& status = jsonBuffer.createObject();
+      if(!thingsboard){
+        status.set(F("state"),"not running");
+      } else {
+        thingsboard->getStatusJson(status);
+      }
+      root["thingsboard"] = status;
+    }
+
     if(server.hasArg(F("datalogs"))){
       trace(T_WEB,17);
       JsonArray& datalogs = jsonBuffer.createArray();

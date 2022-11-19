@@ -353,6 +353,8 @@ bool uploader::config(const char *jsonConfig)
         uploaders++;
     if(Emoncms)
         uploaders++;
+    if(thingsboard) //DAC
+        uploaders++; //DAC
     if(uploaders){
         uploaderBufferLimit = MIN(uploaderBufferTotal / uploaders, 4000);
     }

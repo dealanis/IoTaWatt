@@ -72,6 +72,7 @@ class uploader
         struct POSTrequest{
             char*   endpoint;
             char*   contentType;
+            char*   method; //DAC
             states  completionState;
             POSTrequest():endpoint(nullptr),contentType(nullptr){};
             ~POSTrequest(){delete[] endpoint; delete[] contentType;}

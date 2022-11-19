@@ -2,6 +2,7 @@
 #include "Emoncms_uploader.h"
 #include "influxDB_v1_uploader.h"
 #include "influxDB_v2_uploader.h"
+#include "thingsboard_uploader.h" //DAC
 
 bool configDevice(const char*);
 bool configDST(const char* JsonStr);
@@ -302,6 +303,26 @@ boolean setConfig(const char* configPath){
       delete simsolar;
       simsolar = nullptr;
     }
+
+      // ************************************** configure Thingsboard *****************************************
+      // ************************************** DAC 2022.10.23        *****************************************
+  {
+    trace(T_CONFIG,56);
+    JsonArray& thingsboardArray = Config[F("thingsboard")];
+    if(thingsboardArray.success()){
+      char* thingsboardStr = JsonDetail(ConfigFile, thingsboardArray);
+      if(! thingsboard){
+        thingsboard = new thingsboard_uploader();
+      }
+      if( ! thingsboard->config(thingsboardStr)){
+        log("Thingsboard: Invalid configuration."); 
+      } 
+      delete[] thingsboardStr;
+    }   
+    else if(thingsboard){
+      thingsboard->end();
+    }    
+  }
 
 
       // ************************************** Code to handle array of configurations****************************
